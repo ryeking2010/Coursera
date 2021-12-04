@@ -1,2 +1,1 @@
-# Coursera
-L3 Projects
+This contains Coursera projects
