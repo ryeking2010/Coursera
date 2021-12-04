@@ -1,0 +1,148 @@
+---
+title: "Fitness_tracker_project1"
+author: "Ryan King"
+date: "12/4/2021"
+output: html_document
+---
+### Project 1: Fitness tracker
+
+## A brief note:
+There is a security / permission for the file located at coursera.
+This makes sense as its a pay-for-access service.
+Therefore, various retrieval methods have failed:
+```{r Firewall_block}
+## NOT RUN
+if(0){ # unmask for proof of 403:
+  # attempt 1
+  library(data.table)
+  data_url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
+  mydata <- fread(data_url)
+  
+  # attempt 2
+  download.file(data_url, 'activity.zip')
+}
+```
+
+
+Therefore, I make the humble request to add the file path to a local copy:
+
+```{r file_import}
+library(dplyr)
+library(ggplot2)
+file_path <- "C:/Users/I0485672/Downloads/activity.csv"
+data <- read.csv(file_path)
+```
+
+## Analyzing the data
+
+There are some NA's in here. They will be removed until imputed step.
+Why? They don't have the device on or working.
+We cannot say that means zero steps.
+
+# Let's look at the total number of steps taken each day
+```{r daily_sum_of_steps}
+data_summary <- data[complete.cases(data), ] %>% group_by(date) %>% summarize(mean=sum(steps, na.rm = TRUE))
+data_summary
+
+data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
+  theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
+                    title = 'Frequency of mean steps per day')
+```
+
+# let's look at the mean steps per day. We will group by the date
+```{r daily_mean_of_steps}
+data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(mean=mean(steps, na.rm = TRUE))
+
+# here's a plot for kicks
+data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
+  theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
+                    title = 'Frequency of mean steps per day')
+
+```
+
+
+# let's look at the median steps per day 
+```{r daily_median_of_steps}
+data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(median=median(steps, na.rm = TRUE))
+
+# here's a plot for kicks
+data_summary %>% ggplot(aes(x = median)) + geom_histogram(bins = 20) +
+  theme_bw() + labs(x='Median steps per day', y='Number of occurances', 
+                    title = 'Frequency of Median steps per day')
+```
+
+Doesn't look great does it? Can the data be true? Let's test!
+```{r median_check}
+# isolated event works
+data %>% filter(date == '2012-10-03') %>% .[[1]] %>% median()
+
+# I see more zeros than numbers, which means median will be 0. Is this true?
+table(data %>% filter(date == '2012-10-03')  %>% .[[1]] > 0)
+```
+It's a class imbalance... more zeros than numbers, so it's correct
+
+## let's look at a time series
+```{r timeseries_mean}
+data_summary <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
+
+ggplot(data_summary, aes(x = interval, y = mean)) + 
+  geom_point() + geom_line() + theme_bw() + 
+  labs(y="Mean steps", x = "Minutes from start of day", 
+       title = "Average number of steps during the day")
+```
+
+let's look at the highest steps taken
+```{r highest steps}
+data_summary <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
+data_summary %>% arrange(desc(mean))
+
+print("The largest interval")
+data_summary %>% arrange(desc(mean)) %>% head(n=1)
+```
+
+## Imputing data
+
+How to impute data? There's many many theories out there
+1. mean - on each interval
+2. nearest neighbor - for example, steps on a Saturday vs. Monday and take mean
+3. So much more, but #2 is really good.
+
+Let's do the mean of the days of the week for the given interval
+If you really wanted a nice imputation, perhaps a lagging average?
+
+```{r impute}
+data.avg.per.weekday <- data
+data.avg.per.weekday$date <- as.Date(data$date) %>% weekdays()
+data.avg.per.weekday <-  data.avg.per.weekday[complete.cases(data.avg.per.weekday), ] %>% group_by(date, interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
+
+
+data.meanImpute <- data
+for (i in 1:nrow(data.meanImpute)){
+  if(is.na(data.meanImpute[i, 1])){
+    data.meanImpute[i, 1] <- data.avg.per.weekday %>% 
+      filter(date == weekdays(as.Date(data[i, 2])) & interval == data[i, 3]) %>%
+      .[[3]]
+  }
+}
+
+print("Checking data:")
+any(is.na(data.meanImpute))
+# cha-ching
+```
+
+Let's use this for a days of the week plot
+```{r daysofweek}
+# let's get the days of the week reordered properly for the graph
+data.meanImpute$date <- weekdays(as.Date(data.meanImpute$date))
+data.meanImpute$date <- factor(data.meanImpute$date, levels = 
+                                    c("Monday", "Tuesday", "Wednesday", 
+                                      "Thursday", "Friday", "Saturday", 
+                                      "Sunday"))
+
+data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+  geom_line() + theme_bw() + facet_wrap(~date) + 
+  labs(title = "Average steps across days of the week\nwith imputed data",
+       x = "Time in minutes", y = "Average mean steps")
+```
+
+Looks like people are more active saturday night and weekday mornings
