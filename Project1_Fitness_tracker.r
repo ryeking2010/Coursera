@@ -84,6 +84,15 @@ for (i in 1:nrow(data.meanImpute)){
 # cha ching
 any(is.na(data.meanImpute))
 
+# let's look at average steps each day
+data.check <- data.meanImpute %>% group_by(date) %>% summarize(DailySteps = sum(steps))
+
+data.check %>% ggplot(aes(x = DailySteps)) +
+  geom_histogram() + theme_bw() + 
+  labs(y="Days with number of steps", x = "Daily steps", 
+       title = "Average number of steps during the day")
+
+
 # let's get the days of the week reordered properly for the graph
 data.meanImpute$date <- weekdays(as.Date(data.meanImpute$date))
 data.meanImpute$date <- factor(data.meanImpute$date, levels = 
