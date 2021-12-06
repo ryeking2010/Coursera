@@ -6,29 +6,11 @@ output: html_document
 ---
 ### Project 1: Fitness tracker
 
-## A brief note:
-There is a security / permission for the file located at coursera.
-This makes sense as its a pay-for-access service.
-Therefore, various retrieval methods have failed:
-```{r Firewall_block}
-## NOT RUN
-if(0){ # unmask for proof of 403:
-  # attempt 1
-  library(data.table)
-  data_url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
-  mydata <- fread(data_url)
-  
-  # attempt 2
-  download.file(data_url, 'activity.zip')
-}
-```
-
-
-Therefore, I make the humble request to add the file path to a local copy:
-
+## Load the data and environment
 ```{r file_import}
 library(dplyr)
 library(ggplot2)
+library(data.table)
 file_path <- "C:/Users/I0485672/Downloads/activity.csv"
 data <- read.csv(file_path)
 ```
@@ -49,32 +31,11 @@ data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
                     title = 'Frequency of mean steps per day')
 ```
 
-# let's look at the mean steps per day. We will group by the date
-```{r daily_mean_of_steps}
-data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(mean=mean(steps, na.rm = TRUE))
-
-# here's a plot for kicks
-data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
-  theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
-                    title = 'Frequency of mean steps per day')
-
+# let's look at the mean and steps per day.
+```{r mean_and_median}
+mean(data_summary$StepsSum)
+median(data_summary$StepsSum)
 ```
-
-
-# let's look at the median steps per day 
-```{r daily_median_of_steps}
-data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(median=median(steps, na.rm = TRUE))
-
-# here's a plot for kicks
-data_summary %>% ggplot(aes(x = median)) + geom_histogram(bins = 20) +
-  theme_bw() + labs(x='Median steps per day', y='Number of occurances', 
-                    title = 'Frequency of Median steps per day')
-```
-
-Doesn't look great does it? Can the data be true? Let's test!
-```{r median_check}
-# isolated event works
-data %>% filter(date == '2012-10-03') %>% .[[1]] %>% median()
 
 # I see more zeros than numbers, which means median will be 0. Is this true?
 table(data %>% filter(date == '2012-10-03')  %>% .[[1]] > 0)
