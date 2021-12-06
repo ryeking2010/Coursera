@@ -79,3 +79,14 @@ data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
        x = "Time in minutes", y = "Average mean steps")
 
 # and now we can tell that people are more active saturday night and weekday mornings
+
+# They may want weekdays VS weekends, not all days.
+```{r weekDAYSvsENDS}
+data.meanImpute$date <- str_replace(data.meanImpute$date, "Saturday", "Weekend")
+data.meanImpute$date <- str_replace(data.meanImpute$date, "Sunday", "Weekend")
+data.meanImpute$date <- if_else(data.meanImpute$date == 'Weekend', 'Weekend', 'Weekday')
+data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+  geom_line() + theme_bw() + facet_wrap(~date) + 
+  labs(title = "Average steps across days of the week\nwith imputed data",
+       x = "Time in minutes", y = "Average mean steps")
+```
