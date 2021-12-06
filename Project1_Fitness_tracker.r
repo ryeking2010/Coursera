@@ -3,26 +3,10 @@
 
 library(dplyr)
 library(ggplot2)
-
-# place the file path here to where the file is located
-file_path <- "C:/Users/I0485672/Downloads/activity.csv"
-
-# there is a security / permission for the file located at coursera
-# this makes sense as its a pay-for-access service
-# therefore, various retrieval methods have failed:
-if(0){ # unmask for proof of 403:
-  # attempt 1
-  library(data.table)
-  data_url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
-  mydata <- fread(data_url)
+library(data.table)
+data_url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
+mydata <- fread(data_url)
   
-  # attempt 2
-  download.file(data_url, 'activity.zip')
-}
-
-# therefore, the file will be read from a path
-data <- read.csv(file_path)
-
 # there are some NAs here
 # perhaps the device was not on. Shall we impute zero or drop data?
 # going with dropping as we cannot say they didn't move!
@@ -35,30 +19,12 @@ data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
   theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
                     title = 'Frequency of mean steps per day')
 
-# let's look at the mean steps per day. We will group by the date
-data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(mean=mean(steps, na.rm = TRUE))
+data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(StepsSum=sum(steps, na.rm = TRUE))
+# The mean:
+mean(data_summary$StepsSum)
 
-# here's a plot for kicks
-
-data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
-  theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
-                    title = 'Frequency of mean steps per day')
-
-# let's look at the median steps per day. We will group by the date
-data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(median=median(steps, na.rm = TRUE))
-
-# here's a plot for kicks
-data_summary %>% ggplot(aes(x = median)) + geom_histogram(bins = 20) +
-  theme_bw() + labs(x='Median steps per day', y='Number of occurances', 
-                    title = 'Frequency of Median steps per day')
-
-# median is zero 
-# let's check!
-data %>% filter(date == '2012-10-03') %>% .[[1]] %>% median()
-
-# it's a class imbalance... more zeros than numbers, so it's correct
-table(data %>% filter(date == '2012-10-03')  %>% .[[1]] > 0)
-
+# The median
+median(data_summary$StepsSum)
 
 # let's look at a time series
 # there's multiple intrepretations of the request, but I think they want
