@@ -2,7 +2,9 @@
 title: "Fitness_tracker_project1"
 author: "Ryan King"
 date: "12/4/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 ### Project 1: Fitness tracker
 
@@ -11,6 +13,7 @@ output: html_document
 library(dplyr)
 library(ggplot2)
 library(data.table)
+library(stringr)
 file_path <- "C:/Users/I0485672/Downloads/activity.csv"
 data <- read.csv(file_path)
 ```
@@ -37,6 +40,28 @@ data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(S
 mean(data_summary$StepsSum)
 median(data_summary$StepsSum)
 ```
+What's the max steps in a given interval?
+```{r findMax}
+data_summary.max <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(StepsMax=max(steps, na.rm = TRUE))
+tophit <- data_summary.max %>% arrange(desc(StepsMax)) %>% head(n=1)
+tophit
+```
+The 615 interval has the max steps
+
+
+But that's max... what's the max (highest) average steps taken
+
+```{r highest_avg_steps}
+data_summary <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
+data_summary %>% arrange(desc(mean))
+
+
+max.avg.results <- data_summary %>% arrange(desc(mean)) %>% head(n=1)
+print(paste("The largest interval is,", max.avg.results$interval, "with", max.avg.results$mean, "max steps on average"))
+```
+The largest interval is, 835 with 206.169811320755 max steps on average
+
+
 
 ## let's look at a time series
 ```{r timeseries_mean}
@@ -46,15 +71,6 @@ ggplot(data_summary, aes(x = interval, y = mean)) +
   geom_point() + geom_line() + theme_bw() + 
   labs(y="Mean steps", x = "Minutes from start of day", 
        title = "Average number of steps during the day")
-```
-
-let's look at the highest steps taken
-```{r highest steps}
-data_summary <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
-data_summary %>% arrange(desc(mean))
-
-print("The largest interval")
-data_summary %>% arrange(desc(mean)) %>% head(n=1)
 ```
 
 ## Imputing data
@@ -87,6 +103,20 @@ any(is.na(data.meanImpute))
 # cha-ching
 ```
 
+### Visualizing imputed data
+Let's make a histogram
+
+```{r imputeHistogram}
+# let's make it averaged per interval
+data.check <- data.meanImpute %>% group_by(interval) %>% summarize(StepsMean = mean(steps))
+data.check %>%
+ggplot(aes(x = interval, y = StepsMean)) + 
+  geom_point() + geom_line() + theme_bw() + 
+  labs(y="Mean steps", x = "Minutes from start of day", 
+       title = "Average number of steps during the day")
+```
+
+
 Let's use this for a days of the week plot
 ```{r daysofweek}
 # let's get the days of the week reordered properly for the graph
@@ -103,3 +133,14 @@ data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
 ```
 
 Looks like people are more active saturday night and weekday mornings
+
+They may want weekdays VS weekends, not all days.
+```{r weekDAYSvsENDS}
+data.meanImpute$date <- str_replace(data.meanImpute$date, "Saturday", "Weekend")
+data.meanImpute$date <- str_replace(data.meanImpute$date, "Sunday", "Weekend")
+data.meanImpute$date <- if_else(data.meanImpute$date == 'Weekend', 'Weekend', 'Weekday')
+data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+  geom_line() + theme_bw() + facet_wrap(~date) + 
+  labs(title = "Average steps across days of the week\nwith imputed data",
+       x = "Time in minutes", y = "Average mean steps")
+```
