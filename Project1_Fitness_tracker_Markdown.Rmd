@@ -104,15 +104,15 @@ any(is.na(data.meanImpute))
 ```
 
 ### Visualizing imputed data
-Let's make a histogram
+Let's make a histogram of the total number of steps taken each day after missing values are imputed
 
 ```{r imputeHistogram}
-# let's make it averaged per interval
-data.check <- data.meanImpute %>% group_by(interval) %>% summarize(StepsMean = mean(steps))
-data.check %>%
-ggplot(aes(x = interval, y = StepsMean)) + 
-  geom_point() + geom_line() + theme_bw() + 
-  labs(y="Mean steps", x = "Minutes from start of day", 
+
+data.check <- data.meanImpute %>% group_by(date) %>% summarize(DailySteps = sum(steps))
+
+data.check %>% ggplot(aes(x = DailySteps)) +
+geom_histogram() + theme_bw() + 
+  labs(y="Days with number of steps", x = "Daily steps", 
        title = "Average number of steps during the day")
 ```
 
@@ -126,7 +126,8 @@ data.meanImpute$date <- factor(data.meanImpute$date, levels =
                                       "Thursday", "Friday", "Saturday", 
                                       "Sunday"))
 
-data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+data.meanImpute.eachday <- data.meanImpute %>% group_by(date, interval) %>% summarise(meanSteps = mean(steps))
+data.meanImpute.eachday %>% ggplot(aes(x = interval, y = meanSteps, color = date)) +
   geom_line() + theme_bw() + facet_wrap(~date) + 
   labs(title = "Average steps across days of the week\nwith imputed data",
        x = "Time in minutes", y = "Average mean steps")
@@ -139,7 +140,9 @@ They may want weekdays VS weekends, not all days.
 data.meanImpute$date <- str_replace(data.meanImpute$date, "Saturday", "Weekend")
 data.meanImpute$date <- str_replace(data.meanImpute$date, "Sunday", "Weekend")
 data.meanImpute$date <- if_else(data.meanImpute$date == 'Weekend', 'Weekend', 'Weekday')
-data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+data.meanImpute.final <- data.meanImpute %>% group_by(date, interval) %>% summarise(meanSteps = mean(steps))
+
+data.meanImpute.final %>% ggplot(aes(x = interval, y = meanSteps, color = date)) +
   geom_line() + theme_bw() + facet_wrap(~date) + 
   labs(title = "Average steps across days of the week\nwith imputed data",
        x = "Time in minutes", y = "Average mean steps")
