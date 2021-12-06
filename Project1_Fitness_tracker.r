@@ -4,9 +4,10 @@
 library(dplyr)
 library(ggplot2)
 library(data.table)
-data_url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
-mydata <- fread(data_url)
-  
+library(stringr)
+file_path <- "C:/Users/I0485672/Downloads/activity.csv"
+data <- read.csv(file_path)
+
 # there are some NAs here
 # perhaps the device was not on. Shall we impute zero or drop data?
 # going with dropping as we cannot say they didn't move!
@@ -19,12 +20,29 @@ data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
   theme_bw() + labs(x='Mean steps per day', y='Number of occurances', 
                     title = 'Frequency of mean steps per day')
 
+# let's look at the mean steps per day. We will group by the date
 data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(StepsSum=sum(steps, na.rm = TRUE))
-# The mean:
+ # THE MEAN:
 mean(data_summary$StepsSum)
 
-# The median
+# THE MEDIAN:
 median(data_summary$StepsSum)
+
+# What's the max steps in a given interval?
+data_summary.max <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(StepsMax=max(steps, na.rm = TRUE))
+tophit <- data_summary.max %>% arrange(desc(StepsMax)) %>% head(n=1)
+tophit
+# The 615 interval has the max steps
+
+# But that's max... what's the max (highest) average steps taken
+data_summary <-  data[complete.cases(data), ] %>% group_by(interval) %>% summarize(mean=mean(steps, na.rm = TRUE))
+data_summary %>% arrange(desc(mean))
+
+
+max.avg.results <- data_summary %>% arrange(desc(mean)) %>% head(n=1)
+print(paste("The largest interval is,", max.avg.results$interval, "with", max.avg.results$mean, "max steps on average"))
+
+
 
 # let's look at a time series
 # there's multiple intrepretations of the request, but I think they want
@@ -73,20 +91,22 @@ data.meanImpute$date <- factor(data.meanImpute$date, levels =
                                       "Thursday", "Friday", "Saturday", 
                                       "Sunday"))
 
-data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+data.meanImpute.eachday <- data.meanImpute %>% group_by(date, interval) %>% summarise(meanSteps = mean(steps))
+
+data.meanImpute.eachday %>% ggplot(aes(x = interval, y = meanSteps, color = date)) +
   geom_line() + theme_bw() + facet_wrap(~date) + 
   labs(title = "Average steps across days of the week\nwith imputed data",
        x = "Time in minutes", y = "Average mean steps")
 
 # and now we can tell that people are more active saturday night and weekday mornings
 
-# They may want weekdays VS weekends, not all days.
-
 data.meanImpute$date <- str_replace(data.meanImpute$date, "Saturday", "Weekend")
 data.meanImpute$date <- str_replace(data.meanImpute$date, "Sunday", "Weekend")
 data.meanImpute$date <- if_else(data.meanImpute$date == 'Weekend', 'Weekend', 'Weekday')
-data.meanImpute %>% ggplot(aes(x = interval, y = steps, color = date)) +
+
+data.meanImpute.final <- data.meanImpute %>% group_by(date, interval) %>% summarise(meanSteps = mean(steps))
+
+data.meanImpute.final %>% ggplot(aes(x = interval, y = meanSteps, color = date)) +
   geom_line() + theme_bw() + facet_wrap(~date) + 
   labs(title = "Average steps across days of the week\nwith imputed data",
        x = "Time in minutes", y = "Average mean steps")
-
