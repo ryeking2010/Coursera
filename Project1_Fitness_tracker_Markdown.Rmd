@@ -33,14 +33,10 @@ data_summary %>% ggplot(aes(x = mean)) + geom_histogram(bins = 20) +
 
 # let's look at the mean and steps per day.
 ```{r mean_and_median}
+data_summary <-  data[complete.cases(data), ] %>% group_by(date) %>% summarize(StepsSum=sum(steps, na.rm = TRUE))
 mean(data_summary$StepsSum)
 median(data_summary$StepsSum)
 ```
-
-# I see more zeros than numbers, which means median will be 0. Is this true?
-table(data %>% filter(date == '2012-10-03')  %>% .[[1]] > 0)
-```
-It's a class imbalance... more zeros than numbers, so it's correct
 
 ## let's look at a time series
 ```{r timeseries_mean}
